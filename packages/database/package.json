@@ -1,0 +1,19 @@
+{
+  "name": "@peptiq/database",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prisma schema and database migrations for PeptIQ",
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "push": "prisma db push",
+    "studio": "prisma studio",
+    "seed": "ts-node ../../../scripts/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.0.0"
+  }
+}
