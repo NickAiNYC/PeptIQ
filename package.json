@@ -13,16 +13,20 @@
     "db:seed": "cd scripts && npx ts-node seed.ts",
     "db:studio": "cd packages/database && npx prisma studio",
     "lint": "echo 'No lint configured yet'",
-    "test": "echo 'No tests configured yet'",
-    "build": "echo 'No build configured yet'"
+    "test": "jest",
+    "build": "tsc --noEmit"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.2.3",
+    "jest": "^30.2.0",
     "prisma": "^5.0.0",
-    "typescript": "^5.0.0",
-    "ts-node": "^10.9.0"
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
