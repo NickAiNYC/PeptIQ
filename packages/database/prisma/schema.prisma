@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core Entities
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  role          Role      @default(CONSUMER)
+  stripeId      String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  samples       Sample[]
+  subscriptions Subscription[]
+  apiKeys       ApiKey[]
+}
+
+model Sample {
+  id               String       @id @default(cuid())
+  trackingId       String       @unique // Format: PTQ-2026-0001
+  userId           String?
+  user             User?        @relation(fields: [userId], references: [id])
+
+  // Sample Details
+  peptideType      PeptideType
+  supplierName     String
+  supplierBatch    String?
+  purchaseDate     DateTime?
+  dateReceived     DateTime?    @map("date_received")
+  dateTested       DateTime?    @map("date_tested")
+
+  // Test Selection
+  testTier         TestTier
+  status           SampleStatus @default(SUBMITTED)
+
+  // Results (populated from lab)
+  purity           Decimal?     @db.Decimal(5,2)
+  endotoxin        Decimal?     @db.Decimal(5,2)
+  residualTfa      Decimal?     @db.Decimal(5,2)
+  massSpecMatch    Boolean?
+  labReportUrl     String?
+  labReportPdf     Bytes?       // Stored in S3, reference here
+
+  // AI Analysis
+  aiGrade          String?      // A/B/C/D/F
+  aiSummary        String?      @db.Text
+  aiRecommendation String?      @db.Text
+
+  // Metadata
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  public           Boolean      @default(false) // Visible in public DB
+
+  // Relations
+  supplierId       String?
+  supplier         Supplier?    @relation(fields: [supplierId], references: [id])
+
+  @@index([trackingId])
+  @@index([supplierName])
+  @@index([peptideType])
+  @@map("samples")
+}
+
+model Supplier {
+  id              String    @id @default(cuid())
+  name            String    @unique
+  website         String?
+  verified        Boolean   @default(false)
+  verificationDate DateTime?
+
+  // Contact
+  contactName     String?
+  contactEmail    String?
+  contactPhone    String?
+
+  // Verification Program
+  verificationTier VerificationTier?
+  annualFee       Decimal?  @db.Decimal(10,2)
+  lastPaymentDate DateTime?
+  nextReviewDate  DateTime?
+
+  // Metrics (automatically calculated)
+  avgPurity       Decimal?  @db.Decimal(5,2)
+  avgEndotoxin    Decimal?  @db.Decimal(5,2)
+  sampleCount     Int       @default(0)
+  passRate        Decimal?  @db.Decimal(5,2)
+
+  // Relations
+  samples         Sample[]
+  alerts          QualityAlert[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([verified])
+  @@index([avgPurity])
+}
+
+model QualityAlert {
+  id          String       @id @default(cuid())
+  supplierId  String
+  supplier    Supplier     @relation(fields: [supplierId], references: [id])
+
+  severity    AlertSeverity
+  title       String
+  description String      @db.Text
+  resolved    Boolean     @default(false)
+  resolvedAt  DateTime?
+
+  // AI-generated metadata
+  detectionMethod String   // "trend_analysis", "batch_failure", "manual"
+  confidence      Decimal? @db.Decimal(3,2)
+
+  createdAt   DateTime     @default(now())
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  name        String
+  key         String    @unique
+  lastUsed    DateTime?
+  expiresAt   DateTime?
+
+  permissions Json      // {"read": true, "write": false, "admin": false}
+
+  createdAt   DateTime  @default(now())
+}
+
+model Subscription {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+
+  tier          SubscriptionTier
+  stripePriceId String
+  stripeSubId   String    @unique
+  status        SubscriptionStatus @default(ACTIVE)
+
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean   @default(false)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Enums
+enum Role {
+  CONSUMER
+  VERIFIED_SUPPLIER
+  CLINIC
+  ADMIN
+}
+
+enum PeptideType {
+  BPC157
+  TB500
+  SEMAGLUTIDE
+  TIRZEPATIDE
+  GHKCU
+  NAD
+  MOTSC
+  EPITALON
+  SEMAX
+  SELANK
+  CJC1295
+  IPAMORELIN
+  OTHER
+}
+
+enum TestTier {
+  TIER1 // Identity + Purity + TFA
+  TIER2 // + Endotoxin + Sterility
+  TIER3 // Full validation + Impurity profile
+}
+
+enum SampleStatus {
+  SUBMITTED
+  AWAITING_SAMPLE
+  SAMPLE_RECEIVED
+  AT_LAB
+  IN_TESTING
+  RESULTS_RECEIVED
+  REPORT_GENERATED
+  COMPLETED
+  FAILED
+}
+
+enum VerificationTier {
+  BASIC     // $3,500/yr, quarterly testing
+  PREMIUM   // $8,500/yr, monthly testing + featured
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum SubscriptionTier {
+  PASSPORT     // $39/mo, 1 free test/month
+  CLINIC_BASIC // $500/mo, read-only API
+  CLINIC_PRO   // $2,500/mo, submission API
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  PAUSED
+}
