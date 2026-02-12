@@ -56,13 +56,9 @@ class TrendDetector:
         for supplier in df['supplierName'].unique():
             supplier_df = df[df['supplierName'] == supplier].sort_values('createdAt')
 
-            if len(supplier_df) >= 4:
+            if len(supplier_df) >= 6:
                 recent = supplier_df.head(3)['purity'].mean()
-                previous = (
-                    supplier_df.iloc[3:6]['purity'].mean()
-                    if len(supplier_df) > 3
-                    else recent
-                )
+                previous = supplier_df.iloc[3:6]['purity'].mean()
 
                 drop = previous - recent
 

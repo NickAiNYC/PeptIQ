@@ -13,7 +13,17 @@ export class PDFReportGenerator {
    * Generate branded PDF report from test results
    */
   async generateReport(sample: SampleData, results: TestResults): Promise<Buffer> {
-    return new Promise(async (resolve, reject) => {
+    // Generate AI analysis before creating the PDF stream
+    const aiResults: AITestResults = {
+      peptideType: sample.peptideType,
+      purity: results.purity,
+      endotoxin: results.endotoxin,
+      residualTfa: results.residualTfa,
+      supplierName: sample.supplierName
+    };
+    const analysis = await this.claude.generateReportAnalysis(aiResults);
+
+    return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
           size: 'A4',
@@ -28,16 +38,6 @@ export class PDFReportGenerator {
         const buffers: Buffer[] = [];
         doc.on('data', (chunk: Buffer) => buffers.push(chunk));
         doc.on('end', () => resolve(Buffer.concat(buffers)));
-
-        // Generate AI analysis
-        const aiResults: AITestResults = {
-          peptideType: sample.peptideType,
-          purity: results.purity,
-          endotoxin: results.endotoxin,
-          residualTfa: results.residualTfa,
-          supplierName: sample.supplierName
-        };
-        const analysis = await this.claude.generateReportAnalysis(aiResults);
 
         // Cover Page
         doc.font('Helvetica-Bold').fontSize(24)

@@ -44,6 +44,7 @@ export class SampleWorkflow {
   /**
    * 2. Customer ships sample - update tracking
    */
+  // TODO: Use trackingInfo to store carrier/tracking number when shipping integration is added
   async handleSampleShipped(sampleId: string, _trackingInfo: TrackingInfo) {
     const sample = await prisma.sample.update({
       where: { id: sampleId },
@@ -161,10 +162,10 @@ export class SampleWorkflow {
         .filter((p): p is number => p !== null);
 
       if (purities.length >= 6) {
-        const firstThreeAvg = purities.slice(-3).reduce((a, b) => a + b, 0) / 3;
-        const lastThreeAvg = purities.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
+        const oldestThreeAvg = purities.slice(-3).reduce((a, b) => a + b, 0) / 3;
+        const newestThreeAvg = purities.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
 
-        if (firstThreeAvg - lastThreeAvg > 2) {
+        if (oldestThreeAvg - newestThreeAvg > 2) {
           // Create quality alert
           const supplier = await prisma.supplier.findUnique({
             where: { name: sample.supplierName }
@@ -176,7 +177,7 @@ export class SampleWorkflow {
                 supplierId: supplier.id,
                 severity: 'WARNING',
                 title: `Declining ${sample.peptideType} quality`,
-                description: `${sample.supplierName} purity dropped from ${firstThreeAvg.toFixed(1)}% to ${lastThreeAvg.toFixed(1)}% over last 3 batches`,
+                description: `${sample.supplierName} purity dropped from ${oldestThreeAvg.toFixed(1)}% to ${newestThreeAvg.toFixed(1)}% over last 3 batches`,
                 detectionMethod: 'trend_analysis',
                 confidence: 0.85
               }

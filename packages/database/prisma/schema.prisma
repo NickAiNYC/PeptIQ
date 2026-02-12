@@ -42,9 +42,9 @@ model Sample {
   status           SampleStatus @default(SUBMITTED)
 
   // Results (populated from lab)
-  purity           Float?       @db.Decimal(5,2)
-  endotoxin        Float?       @db.Decimal(5,2)
-  residualTfa      Float?       @db.Decimal(5,2)
+  purity           Decimal?     @db.Decimal(5,2)
+  endotoxin        Decimal?     @db.Decimal(5,2)
+  residualTfa      Decimal?     @db.Decimal(5,2)
   massSpecMatch    Boolean?
   labReportUrl     String?
   labReportPdf     Bytes?       // Stored in S3, reference here
@@ -83,15 +83,15 @@ model Supplier {
 
   // Verification Program
   verificationTier VerificationTier?
-  annualFee       Float?    @db.Decimal(10,2)
+  annualFee       Decimal?  @db.Decimal(10,2)
   lastPaymentDate DateTime?
   nextReviewDate  DateTime?
 
   // Metrics (automatically calculated)
-  avgPurity       Float?    @db.Decimal(5,2)
-  avgEndotoxin    Float?    @db.Decimal(5,2)
+  avgPurity       Decimal?  @db.Decimal(5,2)
+  avgEndotoxin    Decimal?  @db.Decimal(5,2)
   sampleCount     Int       @default(0)
-  passRate        Float?    @db.Decimal(5,2)
+  passRate        Decimal?  @db.Decimal(5,2)
 
   // Relations
   samples         Sample[]
@@ -117,7 +117,7 @@ model QualityAlert {
 
   // AI-generated metadata
   detectionMethod String   // "trend_analysis", "batch_failure", "manual"
-  confidence      Float?   @db.Decimal(3,2)
+  confidence      Decimal? @db.Decimal(3,2)
 
   createdAt   DateTime     @default(now())
 }
